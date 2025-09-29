@@ -28,11 +28,16 @@
 #define GRID_SIZE 16
 #define QUEUE_CAPACITY (GRID_SIZE * GRID_SIZE)
 
+#define NORTH 0
+#define EAST 1
+#define SOUTH 2
+#define WEST 3
+
 // Direction bitmasks
-#define D_NORTH 1
-#define D_EAST 2
-#define D_SOUTH 4
-#define D_WEST 8
+#define WALL_N 1
+#define WALL_E 2
+#define WALL_S 4
+#define WALL_W 8
 
 typedef enum Action
 {
@@ -68,7 +73,6 @@ void floodFill();
 
 void initSet();
 void addWall(int r, int c, int dir);
-int isAccessible(int r1, int c1, int r2, int c2);
 int isBlank(Cell *cell);
 void resetDistances();
 void setOuterWalls();
@@ -84,5 +88,5 @@ Cell *getRear(Queue *queue);
 Cell *getFront(Queue *queue);
 void enqueue(Queue *queue, Cell *cell);
 Cell *dequeue(Queue *queue);
-
+// Debugging functions
 #endif
