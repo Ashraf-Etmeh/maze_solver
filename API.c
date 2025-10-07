@@ -4,7 +4,8 @@
 
 #define BUFFER_SIZE 32
 
-int getInteger(char* command) {
+int getInteger(char *command)
+{
     printf("%s\n", command);
     fflush(stdout);
     char response[BUFFER_SIZE];
@@ -13,7 +14,8 @@ int getInteger(char* command) {
     return value;
 }
 
-int getBoolean(char* command) {
+int getBoolean(char *command)
+{
     printf("%s\n", command);
     fflush(stdout);
     char response[BUFFER_SIZE];
@@ -22,7 +24,8 @@ int getBoolean(char* command) {
     return value;
 }
 
-int getAck(char* command) {
+int getAck(char *command)
+{
     printf("%s\n", command);
     fflush(stdout);
     char response[BUFFER_SIZE];
@@ -31,87 +34,106 @@ int getAck(char* command) {
     return success;
 }
 
-int API_mazeWidth() {
+int API_mazeWidth()
+{
     return getInteger("mazeWidth");
 }
 
-int API_mazeHeight() {
+int API_mazeHeight()
+{
     return getInteger("mazeHeight");
 }
 
-int API_wallFront() {
+int API_wallFront()
+{
     return getBoolean("wallFront");
 }
 
-int API_wallRight() {
+int API_wallRight()
+{
     return getBoolean("wallRight");
 }
 
-int API_wallLeft() {
+int API_wallLeft()
+{
     return getBoolean("wallLeft");
 }
 
-int API_moveForward() {
+int API_moveForward()
+{
     return getAck("moveForward");
 }
 
-void API_turnRight() {
+void API_turnRight()
+{
     getAck("turnRight");
 }
 
-void API_turnLeft() {
+void API_turnLeft()
+{
     getAck("turnLeft");
 }
 
-void API_setWall(int x, int y, char direction) {
+void API_setWall(int x, int y, char direction)
+{
     printf("setWall %d %d %c\n", x, y, direction);
     fflush(stdout);
 }
 
-void API_clearWall(int x, int y, char direction) {
+void API_clearWall(int x, int y, char direction)
+{
     printf("clearWall %d %d %c\n", x, y, direction);
     fflush(stdout);
 }
 
-void API_setColor(int x, int y, char color) {
+void API_setColor(int x, int y, char color)
+{
     printf("setColor %d %d %c\n", x, y, color);
     fflush(stdout);
 }
 
-void API_clearColor(int x, int y) {
+void API_clearColor(int x, int y)
+{
     printf("clearColor %d %d\n", x, y);
     fflush(stdout);
 }
 
-void API_clearAllColor() {
+void API_clearAllColor()
+{
     printf("clearAllColor\n");
     fflush(stdout);
 }
 
-void API_setText(int x, int y, char* text) {
+void API_setText(int x, int y, char *text)
+{
     printf("setText %d %d %s\n", x, y, text);
     fflush(stdout);
 }
 
-void API_clearText(int x, int y) {
+void API_clearText(int x, int y)
+{
     printf("clearText %d %d\n", x, y);
     fflush(stdout);
 }
 
-void API_clearAllText() {
+void API_clearAllText()
+{
     printf("clearAllText\n");
     fflush(stdout);
 }
 
-int API_wasReset() {
+int API_wasReset()
+{
     return getBoolean("wasReset");
 }
 
-void API_ackReset() {
+void API_ackReset()
+{
     getAck("ackReset");
 }
 
-void debug_log(char* text) {
+void debug_log(char *text)
+{
     fprintf(stderr, "%s\n", text);
     fflush(stderr);
 }

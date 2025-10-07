@@ -29,7 +29,7 @@ static int forwardNext = 0;
 // Movement
 int dRow[4] = {-1, 0, 1, 0}; // WALL_N, WALL_E, WALL_S, WALL_W
 int dCol[4] = {0, 1, 0, -1};
-int dirMask[4] = {WALL_N, WALL_E, WALL_S, WALL_W};
+int dirMask[4] = {WALL_N, WALL_E, WALL_S, WALL_W}; // 0:N, 1:E, 2:S, 3:W bitmasks
 
 Cell maze[GRID_SIZE][GRID_SIZE];
 
@@ -50,9 +50,9 @@ void resetDistances()
     }
 }
 
-void setOuterWalls()
+void setOuterWalls() /// if you reverse the array to standard like it need to modifiy here
 {
-    printf("Setting outer walls...\n");
+    debug_log("Setting outer walls...\n");
     for (int i = 0; i < GRID_SIZE; i++)
     {
         // Top row → WALL_N walls
@@ -67,12 +67,12 @@ void setOuterWalls()
         // Right column → WALL_E walls
         maze[i][GRID_SIZE - 1].walls |= WALL_E;
     }
-    printf("Outer walls completed\n");
+    debug_log("Outer walls completed\n");
 }
 
 void initSet()
 {
-    printf("Starting initSet()...\n");
+    debug_log("Starting initSet()...\n");
     for (int r = 0; r < GRID_SIZE; r++)
     {
         for (int c = 0; c < GRID_SIZE; c++)
@@ -83,56 +83,64 @@ void initSet()
             maze[r][c].col = c;
         }
     }
-    printf("Grid initialized, setting outer walls...\n");
+    debug_log("Grid initialized, setting outer walls...\n");
 
     // set all boundaries and the start default to walls
     setOuterWalls();
-    printf("Outer walls set, setting start position walls...\n");
+    debug_log("Outer walls set, setting start position walls...\n");
 
-    // I commented this because it apply for just most of the mazes not all of them:
-    // maze[GRID_SIZE - 1][0].walls |= (WALL_S | WALL_W); // Only South and West walls for start
-    printf("initSet() completed\n");
+    debug_log("initSet() completed\n");
 }
 
 void addWall(int r, int c, int dir)
 {
+    unsigned int walls = 0000;
     if (dir == NORTH)
-        dir = WALL_N;
+        walls |= WALL_N;
     else if (dir == EAST)
-        dir = WALL_E;
+        walls |= WALL_E;
     else if (dir == SOUTH)
-        dir = WALL_S;
+        walls |= WALL_S;
     else if (dir == WEST)
-        dir = WALL_W;
+        walls |= WALL_W;
     else
     {
         debug_log("Error in addWall: invalid direction");
     }
 
-    maze[r][c].walls |= dir;
+    maze[r][c].walls |= walls;
 
     // Update the neighbor in the opposite direction
     int nr = r, nc = c;
-    if (dir == WALL_N)
+    if (dir == NORTH)
         nr--;
-    if (dir == WALL_S)
+    if (dir == SOUTH)
         nr++;
-    if (dir == WALL_W)
+    if (dir == WEST)
         nc--;
-    if (dir == WALL_E)
+    if (dir == EAST)
         nc++;
 
     if (nr >= 0 && nr < GRID_SIZE && nc >= 0 && nc < GRID_SIZE)
     {
-        if (dir == WALL_N)
+        if (dir == NORTH)
             maze[nr][nc].walls |= WALL_S;
-        if (dir == WALL_S)
+        if (dir == SOUTH)
             maze[nr][nc].walls |= WALL_N;
-        if (dir == WALL_W)
+        if (dir == WEST)
             maze[nr][nc].walls |= WALL_E;
-        if (dir == WALL_E)
+        if (dir == EAST)
             maze[nr][nc].walls |= WALL_W;
     }
+
+    if (maze[r][c].walls & WALL_N)
+        API_setWall(c, r, 'n');
+    if (maze[r][c].walls & WALL_E)
+        API_setWall(c, r, 'e');
+    if (maze[r][c].walls & WALL_S)
+        API_setWall(c, r, 's');
+    if (maze[r][c].walls & WALL_W)
+        API_setWall(c, r, 'w');
 }
 
 // heading missing with wall directions dir
@@ -184,14 +192,12 @@ Action planMove(int row, int col, int targetRow, int targetCol, int *heading)
         desiredHeading = WEST;
     else
     {
-        printf("DEBUG: row=%d col=%d heading=%d targetRow=%d targetCol=%d\n",
-               row, col, *heading, targetRow, targetCol);
-        // here the printf doesn't do anything because it is a simulation so I replaced it with a debug_log down here
-        char buf[128];
-        snprintf(buf, sizeof(buf),
-                 "DEBUG: row=%d col=%d heading=%d targetRow=%d targetCol=%d",
-                 row, col, *heading, targetRow, targetCol);
-        debug_log(buf);
+        // here the debug_log doesn't do anything because it is a simulation so I replaced it with a debug_log down here
+        // char buf[128];
+        // debug_log(buf, sizeof(buf),
+        //           "DEBUG: row=%d col=%d heading=%d targetRow=%d targetCol=%d",
+        //           row, col, *heading, targetRow, targetCol);
+        // debug_log(buf);
 
         debug_log("return next move IDLE");
         return IDLE; // Not a valid neighbor
@@ -314,7 +320,6 @@ Action solver()
             // Return LEFT action so caller will execute one 90° left turn physically.
             if (pendingTurns == 0)
                 forwardNext = 1; // after this turn sequence, next call should go forward
-            printf("Pending LEFT turn, remaining: %d\n", pendingTurns);
             heading = turnLeftDir(heading);
             return LEFT;
         }
@@ -323,7 +328,6 @@ Action solver()
             pendingTurns--;
             if (pendingTurns == 0)
                 forwardNext = 1;
-            printf("Pending RIGHT turn, remaining: %d\n", pendingTurns);
             heading = turnRightDir(heading);
             return RIGHT;
         }
@@ -375,8 +379,6 @@ Action solver()
     int bestRow = row, bestCol = col;
     int bestDist = maze[row][col].distance;
 
-    printf("Looking for better neighbors than distance %d:\n", bestDist);
-
     for (int i = 0; i < 4; i++)
     {
         int nx = row + dRow[i];
@@ -386,32 +388,26 @@ Action solver()
         if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE)
             continue;
 
-        printf("Checking neighbor (%d,%d): ", nx, ny);
-
         // Check accessible
         int opposite = (i + 2) % 4;
         if ((maze[row][col].walls & dirMask[i]) ||
             (maze[nx][ny].walls & dirMask[opposite]))
         {
-            printf("NOT accessible\n");
+            debug_log("NOT accessible\n");
             continue;
         }
         else
         {
-            printf("accessible, distance=%d", maze[nx][ny].distance);
             if (maze[nx][ny].distance < bestDist)
             {
-                printf(" -> BETTER! (was %d)", bestDist);
                 bestDist = maze[nx][ny].distance;
                 bestRow = nx;
                 bestCol = ny;
                 debug_log("found next cell...");
             }
-            printf("\n");
+            debug_log("\n");
         }
     }
-
-    printf("Best cell chosen: (%d,%d) with distance %d\n", bestRow, bestCol, bestDist);
 
     // now  plan the move to (bestRow, bestCol)
     Action act = planMove(row, col, bestRow, bestCol, &heading);
@@ -469,36 +465,32 @@ Action leftWallFollower()
 // Put your implementation of floodfill here!
 void floodFill()
 {
-    printf("Starting floodFill()...\n");
+    debug_log("Starting floodFill()...\n"); // form # here is correct to
     // reset only distances, keep walls
     resetDistances();
-    printf("Distances reset\n");
-
-    Queue *queue = createQueue();
+    debug_log("Distances reset\n");
+    Queue *queue = createQueue(); // to # here
 
     // Set goal cell(s) value to 0 and add to queue:
     int goal = GRID_SIZE / 2;
-    printf("Goal coordinates: (%d,%d), (%d,%d), (%d,%d), (%d,%d)\n",
-           goal, goal, goal - 1, goal, goal, goal - 1, goal - 1, goal - 1);
 
     maze[goal][goal].distance = 0;
     maze[goal - 1][goal].distance = 0;
     maze[goal][goal - 1].distance = 0;
     maze[goal - 1][goal - 1].distance = 0;
-    printf("Goal distances set to 0\n");
+    debug_log("Goal distances set to 0\n");
 
     if (!queue)
     {
-        printf("ERROR: Failed to create queue!\n");
+        debug_log("ERROR: Failed to create queue!\n");
         return;
     }
-    printf("Queue created\n");
+    debug_log("Queue created\n");
 
     enqueue(queue, &maze[goal][goal]); // Add goal cell's info to queue
     enqueue(queue, &maze[goal - 1][goal]);
     enqueue(queue, &maze[goal][goal - 1]);
     enqueue(queue, &maze[goal - 1][goal - 1]);
-    printf("Goal cells enqueued, queue size: %d\n", queue->size);
 
     int iterations = 0;
     // While queue is not empty:
@@ -507,22 +499,24 @@ void floodFill()
         iterations++;
         if (iterations > GRID_SIZE * GRID_SIZE * 2)
         {
-            printf("ERROR: Too many iterations in floodFill! Breaking to avoid infinite loop.\n");
+            debug_log("ERROR: Too many iterations in floodFill! Breaking to avoid infinite loop.\n");
             break;
         }
 
         if (iterations % 50 == 0)
         {
-            printf("FloodFill iteration %d, queue size: %d\n", iterations, queue->size);
+            debug_log("floodFill iteration  mod50 == 0...\n");
         }
 
         // i- Take front cell in queue “out of line” for consideration:
         Cell *current = dequeue(queue);
         if (!current)
         {
-            printf("ERROR: dequeue returned NULL!\n");
+            debug_log("ERROR: dequeue returned NULL!\n");
             break;
         }
+
+        API_clearText(current->row, current->col); // clear previous text
 
         // ii- Set all blank and accessible neighbors to front cell’s value + 1:
         for (int i = 0; i < 4; i++)
@@ -542,17 +536,17 @@ void floodFill()
                 continue; // wall blocks movement
             }
 
-            // check if neighbor has higher distance than current + 1 (or is unvisited)
-            if (maze[nr][nc].distance == -1 || maze[nr][nc].distance > current->distance + 1)
+            // check if nieghbor is blank (unvisited)
+            if (isBlank(&maze[nr][nc]))
             {
                 maze[nr][nc].distance = current->distance + 1;
-                // Add neighbor to queue (even if it was visited before, we need to reprocess it)
+                API_setText(nr, nc, maze[nr][nc].distance); // for debugging in simulator
+                // Add neighbor to queue
                 enqueue(queue, &maze[nr][nc]);
             }
         }
     } // iv- Else, continue!:
 
-    printf("FloodFill completed after %d iterations\n", iterations);
     free(queue);
 
     // return IDLE;
